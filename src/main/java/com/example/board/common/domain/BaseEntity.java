@@ -12,10 +12,10 @@ public abstract class BaseEntity {
     private Instant createdAt;
     @LastModifiedDate @Column(nullable=false)
     private Instant updatedAt;
-    @Column private Instant deletedAt;
+    @Column private Instant isDeleted;
 
     public Instant getCreatedAt(){ return createdAt; }
     public Instant getUpdatedAt(){ return updatedAt; }
-    public Instant getDeletedAt(){ return deletedAt; }
-    public void setDeletedAt(Instant t){ this.deletedAt = t; }
+    public Instant getIsDeleted(){ return isDeleted; }
+    public void setIsDeleted(Instant t){ this.isDeleted = t; }
 }

@@ -57,7 +57,7 @@ public class UserController {
         }
     }
 
-    // ���용자 정보 수정 (Update) - PUT /api/v1/crud/users/{id}
+    // 사용자 정보 수정 (Update) - PUT /api/v1/crud/users/{id}
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateRequest request) {
         try {

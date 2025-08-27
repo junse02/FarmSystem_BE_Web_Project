@@ -11,19 +11,19 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/v1/users")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserMeController {
 
     private final UserMeService meService;
 
-    // GET /v1/users/me
+    // GET /users/me
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getMe(@AuthenticationPrincipal Long userId) {
         return ResponseEntity.ok(ApiResponse.success(meService.getMe(userId)));
     }
 
-    // PATCH /v1/users/me  (이름 변경만 허용)
+    // PATCH /users/me  (이름 변경만 허용)
     @PatchMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> updateMe(
             @AuthenticationPrincipal Long userId,
@@ -31,7 +31,7 @@ public class UserMeController {
         return ResponseEntity.ok(ApiResponse.success(meService.updateName(userId, req)));
     }
 
-    // DELETE /v1/users/me  (soft delete)
+    // DELETE /users/me  (soft delete)
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteMe(@AuthenticationPrincipal Long userId) {
         meService.softDelete(userId);
