@@ -1,5 +1,25 @@
 version: '3.8'
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: board_app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/board_db
+      - SPRING_DATASOURCE_USERNAME=board_user
+      - SPRING_DATASOURCE_PASSWORD=board_pass
+      - SPRING_DATA_REDIS_HOST=redis
+      - JWT_ISSUER=board-api
+      - JWT_SECRET=bc3d98fbd0b236bd1ffaaf195eaf25989e221251b2fc206f86b163a8ffeef90ae12327c792a0b3cde1f1da5e5811f4c26875560a3f5d5dc24b07e795098e0334
+      - JWT_ACCESS_EXP_SECONDS=900
+      - JWT_REFRESH_EXP_SECONDS=1209600
+
   db:
     image: postgres:15
     container_name: board_postgres
@@ -13,16 +33,15 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # Redis는 당장 CRUD에 필요없으므로 주석처리
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: board_redis
-  #   restart: always
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis_data:/data
+  redis:
+    image: redis:7-alpine
+    container_name: board_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
 volumes:
   postgres_data:
-  # redis_data:
+  redis_data:
