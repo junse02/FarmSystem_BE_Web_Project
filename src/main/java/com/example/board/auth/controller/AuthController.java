@@ -29,7 +29,6 @@ public class AuthController {
                 .body(Map.of("success", true));
     }
 
-
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginReq req) {
         System.out.println(">>>> login controller 진입됨");
@@ -37,8 +36,6 @@ public class AuthController {
         var data = auth.login(req.getEmail(), req.getPassword());
         return ResponseEntity.ok(Map.of("success", true, "data", data));
     }
-
-
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(@Valid @RequestBody RefreshReq req) {

@@ -39,7 +39,7 @@ public class AuthService {
         users.save(u);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Map<String, Object> login(String email, String rawPw) {
         var u = users.findByEmailAndIsDeletedFalse(email)
                 .orElseThrow(() -> new IllegalArgumentException("INVALID_CREDENTIALS"));

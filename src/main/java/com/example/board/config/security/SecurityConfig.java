@@ -30,7 +30,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())           // CSRF 끄기 (테스트 우선)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/v1/auth/signup", "/v1/auth/login").permitAll()
+                        .requestMatchers("/v1/auth/signup", "/v1/auth/login", "/v1/auth/logout").permitAll()
                         .anyRequest().permitAll()             // 당장은 전부 허용
                 );
         return http.build();
