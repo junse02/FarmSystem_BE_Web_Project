@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  # Redis 캐시 서버
+  redis-db:
+    image: redis:7-alpine
+    container_name: redis_db
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+
+  # Spring Boot API 서버
+  board-api:
+    image: reha0124/farmsystem-be:latest
+    container_name: board_api
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env # 환경 변수 파일 (.env) 사용
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-redis-db}
+      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6379}
+    depends_on:
+      - redis-db # Redis가 시작된 후에 실행
