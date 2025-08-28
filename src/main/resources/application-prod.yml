@@ -1,0 +1,30 @@
+# Spring 프레임워크 설정
+spring:
+  # 데이터베이스 연결 정보
+  datasource:
+    # URL, 사용자, 비밀번호를 환경 변수로 관리 (기본값 설정)
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://RDS-ENDPOINT:5432/board_db}
+    username: ${SPRING_DATASOURCE_USERNAME:board_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:board_pass}
+    driver-class-name: org.postgresql.Driver
+
+  # Redis 연결 정보
+  data:
+    redis:
+      # 호스트와 포트도 환경 변수로 관리 (기본값 설정)
+      host: ${SPRING_DATA_REDIS_HOST:redis-db}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+  # JPA (Hibernate) 설정
+  jpa:
+    hibernate:
+      ddl-auto: update # 애플리케이션 시작 시 DB 스키마 자동 업데이트
+    show-sql: false # SQL 쿼리 로그 출력 비활성화
+    properties:
+      hibernate:
+        format_sql: false # SQL 포맷팅 비활성화
+        dialect: org.hibernate.dialect.PostgreSQLDialect # PostgreSQL DB 사용
+
+  # DB 마이그레이션 도구 Flyway 비활성화
+  flyway:
+    enabled: false
