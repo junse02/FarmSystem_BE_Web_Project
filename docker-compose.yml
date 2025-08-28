@@ -1,28 +1,9 @@
-version: '3.8'
-services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: board_app
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
-      - redis
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/board_db
-      - SPRING_DATASOURCE_USERNAME=board_user
-      - SPRING_DATASOURCE_PASSWORD=board_pass
-      - SPRING_DATA_REDIS_HOST=redis
-      - JWT_ISSUER=board-api
-      - JWT_SECRET=bc3d98fbd0b236bd1ffaaf195eaf25989e221251b2fc206f86b163a8ffeef90ae12327c792a0b3cde1f1da5e5811f4c26875560a3f5d5dc24b07e795098e0334
-      - JWT_ACCESS_EXP_SECONDS=900
-      - JWT_REFRESH_EXP_SECONDS=1209600
+version: "3.8"
 
-  db:
-    image: postgres:15
-    container_name: board_postgres
+services:
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: postgres_db
     restart: always
     environment:
       POSTGRES_DB: board_db
@@ -31,17 +12,48 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U board_user -d board_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s # 시작 후 30초 동안은 상태 검사 실패를 무시
 
-  redis:
+  redis-db:
     image: redis:7-alpine
-    container_name: board_redis
+    container_name: redis_db
     restart: always
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  board-api:
+    image: reha0124/farmsystem-be:latest
+    container_name: board_api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/board_db
+      SPRING_DATASOURCE_USERNAME: board_user
+      SPRING_DATASOURCE_PASSWORD: board_pass
+      SPRING_DATA_REDIS_HOST: redis-db
+      SPRING_DATA_REDIS_PORT: 6379
+      JWT_SECRET: "change-me-in-dev" # 따옴표로 감싸서 명확하게 설정
+    depends_on:
+      postgres-db:
+        condition: service_healthy # 컨테이너가 Healthy 상태일 때만 시작
+      redis-db:
+        condition: service_healthy # 컨테이너가 Healthy 상태일 때만 시작
 
 volumes:
-  postgres_data:
-  redis_data:
+  postgres-data:
+  redis-data:
