@@ -1,8 +1,8 @@
-name: "🚀 Build & Deploy (board-api)"
+name: 🚀 Build & Deploy (board-api)
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]  # 필요하면 브랜치 수정
 
 jobs:
   build-and-deploy:
@@ -12,21 +12,23 @@ jobs:
 
     env:
       IMAGE_NAME: reha0124/farmsystem-be
-      CONTAINER_NAME: board-api          # 통일
-      SERVICE_DIR: /home/ubuntu/board    # compose 디렉토리
+      CONTAINER_NAME: board_api
 
     steps:
+      # 1) 코드 체크아웃
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2) JDK 21 설정
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: '21'
 
+      # 3) Gradle 캐시(선택)
       - name: Cache Gradle
         uses: actions/cache@v3
         with:
@@ -37,60 +39,61 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
+      # 4) 빌드 (테스트 스킵은 필요에 따라)
       - name: Build with Gradle (skip tests)
         run: ./gradlew clean build -x test
 
+      # 5) Docker Hub 로그인
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # 6) Docker 이미지 빌드 & 푸시
       - name: Build & Push Docker image
+        env:
+          IMAGE_NAME: reha0124/farmsystem-be
         run: |
           docker build -f Dockerfile -t $IMAGE_NAME:${{ github.sha }} .
           docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
           docker push $IMAGE_NAME:${{ github.sha }}
           docker push $IMAGE_NAME:latest
 
-      # (선택) 키 로드 디버그 — 1~2회만 사용 후 주석/삭제 권장
-      - name: Debug SSH key load
-        run: |
-          set -e
-          eval "$(ssh-agent -s)"
-          ssh-add - <<< "${{ secrets.EC2_PRIVATE_KEY }}"
-          ssh -o StrictHostKeyChecking=no -vvv ubuntu@${{ secrets.EC2_HOST }} 'echo "connected"; uname -a'
 
+      # 7) EC2에 배포 (docker-compose 사용)
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          # passphrase: ${{ secrets.EC2_PASSPHRASE }}  # 필요한 경우만
+          envs: DOCKER_USERNAME, JWT_SECRET
           script: |
             set -e
-            echo "[1/4] Docker login"
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-            echo "[2/4] Compose redeploy"
-            cd $SERVICE_DIR
-            docker compose down -v --remove-orphans || true
-            docker rm -f $CONTAINER_NAME || true
+            echo "[1/4] Docker 로그인"
+            echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-            # 최신 이미지 강제 반영
-            docker rmi $IMAGE_NAME:latest || true
-            docker compose pull
-            docker compose up -d
+            echo "[2/4] Docker-Compose 파일로 컨테이너 재시작"
+            cd ~/board
+            # 기존 컨테이너를 강제로 중지하고 제거
+            sudo docker-compose down -v --remove-orphans
 
-            echo "[3/4] 상태/로그"
-            sleep 20
-            docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
-            curl -s http://localhost:8080/actuator/health || true
-            docker compose logs --tail 120 $CONTAINER_NAME || true
+            # 2-1) board-api 컨테이너를 한 번 더 강제로 제거 (혹시 남아있을 경우)
+            sudo docker rm -f 76c02ee1df47 || true
 
-            echo "[4/4] 이미지 정리"
-            docker image prune -f
+            # 2-2) 이미지 삭제. || true를 추가하여 에러 발생 시에도 스크립트가 중단되지 않도록 함
+            sudo docker rmi ${{ secrets.DOCKER_USERNAME }}/farmsystem-be:latest || true
+            sudo docker rmi postgres:15-alpine || true
+            sudo docker rmi redis:7-alpine || true
+
+            # 환경 변수를 명시적으로 전달하며 docker-compose up 실행
+            sudo DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} JWT_SECRET=${{ secrets.JWT_SECRET }} docker-compose up -d
+
+            echo "[3/4] 애플리케이션 로그 확인"
+            sleep 30
+            sudo docker-compose logs --tail 50 board-api || true
+            
+            echo "[4/4] 오래된 이미지 정리"
+            sudo docker image prune -f
