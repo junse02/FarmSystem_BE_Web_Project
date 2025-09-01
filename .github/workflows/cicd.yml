@@ -12,8 +12,8 @@ jobs:
 
     env:
       IMAGE_NAME: reha0124/farmsystem-be
-      CONTAINER_NAME: board-api    # 하이픈으로 통일
-      SERVICE_DIR: /home/ubuntu/board  # compose 있는 디렉토리
+      CONTAINER_NAME: board-api          # 통일
+      SERVICE_DIR: /home/ubuntu/board    # compose 디렉토리
 
     steps:
       - name: Checkout
@@ -56,13 +56,13 @@ jobs:
           docker push $IMAGE_NAME:${{ github.sha }}
           docker push $IMAGE_NAME:latest
 
-      # (선택) 키 로드 디버그 — 1회만 써서 원인 확정
+      # (선택) 키 로드 디버그 — 1~2회만 사용 후 주석/삭제 권장
       - name: Debug SSH key load
         run: |
           set -e
           eval "$(ssh-agent -s)"
           ssh-add - <<< "${{ secrets.EC2_PRIVATE_KEY }}"
-          ssh -o StrictHostKeyChecking=no -vvv ubuntu@${{ secrets.EC2_HOST }} "echo connected && uname -a"
+          ssh -o StrictHostKeyChecking=no -vvv ubuntu@${{ secrets.EC2_HOST }} 'echo "connected"; uname -a'
 
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -70,7 +70,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          # passphrase: ${{ secrets.EC2_PASSPHRASE }} # 필요한 경우만
+          # passphrase: ${{ secrets.EC2_PASSPHRASE }}  # 필요한 경우만
           script: |
             set -e
             echo "[1/4] Docker login"
