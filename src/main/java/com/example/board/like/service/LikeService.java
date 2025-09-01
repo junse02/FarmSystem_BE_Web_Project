@@ -1,6 +1,6 @@
 package com.example.board.like.service;
 
-import com.example.board.like.repository.LikeRepository;
+import com.example.board.like.repository.PostLikeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class LikeService {
 
-    private final LikeRepository likeRepository;
+    private final PostLikeRepository likeRepository;
 
     @Transactional
     public void toggleLike(Long postId, Long userId, boolean like) {
