@@ -2,7 +2,7 @@ name: 🚀 Build & Deploy (board-api)
 
 on:
   push:
-    branches: [ "main" ]  # 필요하면 브랜치 수정
+    branches: [ "main" ]
 
 jobs:
   build-and-deploy:
@@ -28,7 +28,7 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # 3) Gradle 캐시(선택)
+      # 3) Gradle 캐시
       - name: Cache Gradle
         uses: actions/cache@v3
         with:
@@ -39,9 +39,11 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
-      # 4) 빌드 (테스트 스킵은 필요에 따라)
+      # 4) 빌드 (gradlew에 실행 권한 추가)
       - name: Build with Gradle (skip tests)
-        run: ./gradlew clean build -x test
+        run: |
+          chmod +x gradlew  # 실행 권한 추가
+          ./gradlew clean build -x test
 
       # 5) Docker Hub 로그인
       - name: Login to DockerHub
@@ -60,7 +62,6 @@ jobs:
           docker push $IMAGE_NAME:${{ github.sha }}
           docker push $IMAGE_NAME:latest
 
-
       # 7) EC2에 배포 (docker-compose 사용)
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -68,32 +69,31 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          envs: DOCKER_USERNAME, JWT_SECRET
+          envs: JWT_SECRET # 환경 변수는 필요한 것만 전달
           script: |
             set -e
 
-            echo "[1/4] Docker 로그인"
+            # 1. 원격 서버에서 Docker Hub 로그인
             echo "${{ secrets.DOCKER_PASSWORD }}" | sudo docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-            echo "[2/4] Docker-Compose 파일로 컨테이너 재시작"
+            # 2. 최신 Docker 이미지 풀
+            echo "[2/4] 최신 Docker 이미지 풀"
+            sudo docker pull ${{ env.IMAGE_NAME }}:latest
+
+            # 3. Docker Compose로 컨테이너 재시작
+            echo "[3/4] Docker-Compose로 컨테이너 재시작"
             cd ~/board
-            # 기존 컨테이너를 강제로 중지하고 제거
-            sudo docker-compose down -v --remove-orphans
+            # docker-compose.yml 파일이 있는 디렉토리로 이동
+            
+            # 컨테이너와 볼륨을 안전하게 중지 및 삭제
+            sudo docker-compose down --remove-orphans
 
-            # 2-1) board-api 컨테이너를 한 번 더 강제로 제거 (혹시 남아있을 경우)
-            sudo docker rm -f 76c02ee1df47 || true
+            # 환경 변수와 함께 docker-compose up 실행
+            # docker-compose.yml 파일의 environment 항목에 이미 변수 설정이 있기 때문에
+            # 여기서는 비밀 키를 명시적으로 넘겨주면 됩니다.
+            sudo docker-compose up -d
 
-            # 2-2) 이미지 삭제. || true를 추가하여 에러 발생 시에도 스크립트가 중단되지 않도록 함
-            sudo docker rmi ${{ secrets.DOCKER_USERNAME }}/farmsystem-be:latest || true
-            sudo docker rmi postgres:15-alpine || true
-            sudo docker rmi redis:7-alpine || true
-
-            # 환경 변수를 명시적으로 전달하며 docker-compose up 실행
-            sudo DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} JWT_SECRET=${{ secrets.JWT_SECRET }} docker-compose up -d
-
-            echo "[3/4] 애플리케이션 로그 확인"
+            # 4. 애플리케이션 로그 확인
+            echo "[4/4] 애플리케이션 로그 확인"
             sleep 30
             sudo docker-compose logs --tail 50 board-api || true
-            
-            echo "[4/4] 오래된 이미지 정리"
-            sudo docker image prune -f
