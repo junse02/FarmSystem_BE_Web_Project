@@ -1,34 +1,31 @@
 package com.example.board.like.domain;
 
-import com.example.board.post.domain.Post;
-import com.example.board.user.domain.User;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "post_likes",
-        uniqueConstraints = @UniqueConstraint(name = "uk_post_user", columnNames = {"post_id","user_id"}))
+@Table(
+        name = "post_likes",
+        uniqueConstraints = @UniqueConstraint(name = "uk_post_user", columnNames = {"postId", "userId"})
+)
+@Getter
+@NoArgsConstructor
 public class PostLike {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    private Long postId;
+    private Long userId;
 
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private LocalDateTime createdAt;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    protected PostLike() {}
-    public PostLike(Post post, User user) {
-        this.post = post;
-        this.user = user;
+    public PostLike(Long postId, Long userId) {
+        this.postId = postId;
+        this.userId = userId;
+        this.createdAt = LocalDateTime.now();
     }
-
-    public Long getId() { return id; }
-    public Post getPost() { return post; }
-    public User getUser() { return user; }
 }
