@@ -89,8 +89,6 @@ jobs:
             sudo docker-compose down --remove-orphans
 
             # 환경 변수와 함께 docker-compose up 실행
-            # docker-compose.yml 파일의 environment 항목에 이미 변수 설정이 있기 때문에
-            # 여기서는 비밀 키를 명시적으로 넘겨주면 됩니다.
             sudo docker-compose up -d
 
             # 4. 애플리케이션 로그 확인
