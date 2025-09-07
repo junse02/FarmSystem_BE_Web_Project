@@ -14,26 +14,31 @@ public class LikeController {
 
     private final LikeService likeService;
 
+    // 좋아요 토글
     @PutMapping("/{postId}/like")
     public ResponseEntity<Void> like(
             @PathVariable Long postId,
-            @RequestHeader(name = "X-User-Id") Long userId,  // 임시: 헤더로 사용자 식별
             @RequestBody @Valid LikeRequest req
     ) {
+        // ⚡ userId는 SecurityContextHolder 또는 @AuthenticationPrincipal에서 가져오기
+        Long userId = getCurrentUserId();
         likeService.toggleLike(postId, userId, req.like());
         return ResponseEntity.ok().build();
     }
 
-    // (선택) 현재 좋아요 여부/카운트 조회 API
+    // 좋아요 여부 / 카운트 조회
     @GetMapping("/{postId}/like")
     public ResponseEntity<LikeStatusResponse> likeStatus(
-            @PathVariable Long postId,
-            @RequestHeader(name = "X-User-Id") Long userId
+            @PathVariable Long postId
     ) {
+        Long userId = getCurrentUserId();
         boolean liked = likeService.isLiked(postId, userId);
         long count = likeService.countLikes(postId);
         return ResponseEntity.ok(new LikeStatusResponse(liked, count));
     }
 
     public record LikeStatusResponse(boolean liked, long count) {}
+
+   
+    }
 }
